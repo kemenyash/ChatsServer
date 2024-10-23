@@ -19,10 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DataStore\DataStore.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Services\" />
+    <ProjectReference Include="..\Extensions\Extensions.csproj" />
   </ItemGroup>
 
 </Project>

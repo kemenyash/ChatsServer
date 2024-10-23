@@ -1,4 +1,5 @@
 using ChatsServer.Hubs;
+using ChatsServer.Services;
 using DataStore;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,6 +24,8 @@ builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlite($"Data Source={sqlitePath}")
            .LogTo(Console.WriteLine, LogLevel.Warning),
     ServiceLifetime.Scoped);
+
+builder.Services.AddScoped<DataPresenter>();
 
 var app = builder.Build();
 
