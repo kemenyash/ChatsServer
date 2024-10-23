@@ -8,19 +8,30 @@ using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Extensions;
+using System.Collections.Concurrent;
 
 namespace ChatsServer.Services
 {
     public class ProtectionService
     {
         private readonly DataContext dataContext;
+        private readonly ConcurrentDictionary<int, string> tokens;
 
         public ProtectionService(DataContext dataContext)
         {
             this.dataContext = dataContext;
         }
 
-        public async Task<bool> CheckToken(string token) => await dataContext.Hashes.AnyAsync(x => x.Token == token);
+        public async Task<bool> CheckToken(int id, string token) => tokens.TryGetValue(id, out var tokenData) && tokenData == token;
+        public async Task<string> GetToken(int id) 
+        {
+            if(tokens.TryGetValue(id, out var token))
+            {
+                return token;
+            }
+
+            return string.Empty;
+         }
 
         public async Task<bool> CheckAuthCredentials(string username, string password)
         {
@@ -31,15 +42,23 @@ namespace ChatsServer.Services
         }
 
 
-        private async Task<bool> UpdateToken(int operatorId)
+        public async Task<string> UpdateToken(string username)
+        {
+            if(string.IsNullOrEmpty(username)) return string.Empty;
+            var user = await dataContext.Users.FirstOrDefaultAsync(x => x.UserName.ToLower() == username.ToLower());
+            return await UpdateToken(user?.Id ?? 0);
+        }
+
+        public async Task<string> UpdateToken(int operatorId)
         {
             var hash = await dataContext.Hashes.FirstOrDefaultAsync(x => x.OperatorId == operatorId);
-            if (string.IsNullOrEmpty(hash?.Token)) return false;
+            if (hash?.Token is null) return string.Empty;
             var tokenString = GenTokenString(hash.Salt);
             hash.Token = StringHelper.ComputeHash(tokenString);
             dataContext.Hashes.Update(hash);
             await dataContext.SaveChangesAsync();
-            return true;
+            tokens[operatorId] = hash.Token;
+            return hash.Token;
         }
 
         private static string GenPasswordHash(string salt, string password)

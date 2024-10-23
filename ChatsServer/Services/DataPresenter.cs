@@ -1,5 +1,6 @@
 ﻿
 using ChatsServer.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace ChatsServer.Services
 {
@@ -12,9 +13,9 @@ namespace ChatsServer.Services
             this.dataContext = dataContext;
         }
 
-        public IEnumerable<Message> GetMessages(int userId)
+        public async Task<IEnumerable<Message>> GetMessages(int userId)
         {
-            return dataContext.Messages.Where(m => m.UserId == userId)
+            return await dataContext.Messages.Where(m => m.UserId == userId)
                                        .Select(m => new Message
                                        {
                                            AddedTime = m.AddedTime,
@@ -22,19 +23,19 @@ namespace ChatsServer.Services
                                            IsOperatorMessage = m.User.IsOperator,
                                            UserId = userId,
                                            Value = m.Value
-                                       }) ?? Enumerable.Empty<Message>();
+                                       }).ToListAsync() ?? Enumerable.Empty<Message>();
         }
 
-        public IEnumerable<User> GetChats() 
+        public async Task<IEnumerable<User>> GetChats() 
         {
-            return dataContext.Users.Where(x => !x.IsOperator)
+            return await dataContext.Users.Where(x => !x.IsOperator)
                                     .Select(x => new User
                                     {
                                         ChatId = x.ChatId,
                                         Id = x.Id,
                                         ImgUrl = x.Avatar,
                                         Name = x.UserName
-                                    }) ?? Enumerable.Empty<User>();
+                                    }).ToListAsync()  ?? Enumerable.Empty<User>();
         }
     }
 }

@@ -18,7 +18,8 @@ namespace ChatsServer.Controllers
         [HttpGet]
         public async Task<IActionResult> Get(string token)
         {
-            return Ok(token);
+            var chats = await dataPresenter.GetChats();
+            return Ok(chats);
         }
     }
 }
