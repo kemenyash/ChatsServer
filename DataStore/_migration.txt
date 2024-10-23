@@ -1,0 +1,2 @@
+﻿
+dotnet-ef migrations add Initialization -c DataContext -p DataStore -s ChatsServer

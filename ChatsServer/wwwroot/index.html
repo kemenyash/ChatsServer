@@ -1,0 +1,264 @@
+﻿<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.6.16/dist/css/uikit.min.css" />
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        .message-item {
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .my-message .message-content {
+            align-self: flex-end;
+            background-color: #d1e7dd;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 70%;
+        }
+
+        .other-message .message-content {
+            align-self: flex-start;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 70%;
+        }
+
+        .message-text {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .message-time {
+            font-size: 0.8em;
+            color: #666;
+            text-align: right;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            cursor: pointer;
+        }
+
+        .contact-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-left: 10px;
+        }
+
+        .contact-name {
+            font-weight: bold;
+        }
+
+        .chat-container {
+            display: flex;
+            height: 100%;
+        }
+
+        .contacts {
+            width: 30%;
+            background-color: #f0f0f0;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+        }
+
+        .chat-content {
+            width: 70%;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chat-header {
+            padding: 20px;
+            background-color: #f8f8f8;
+            border-bottom: 1px solid #ddd;
+            flex-shrink: 0;
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #ffffff;
+        }
+
+        .chat-footer {
+            padding: 20px;
+            background-color: #f8f8f8;
+            border-top: 1px solid #ddd;
+            flex-shrink: 0;
+        }
+
+        .chat-footer form {
+            display: flex;
+        }
+
+        .chat-footer input[type="text"] {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .chat-footer button {
+            margin-left: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .contacts {
+                width: 100%;
+                height: 100%;
+            }
+
+            .chat-content {
+                width: 100%;
+                height: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="contacts">
+        <ul id="contactList"></ul>
+    </div>
+
+    <div class="chat-content">
+        <div class="chat-header">
+            <h3 id="chatHeader">Select a contact</h3>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-footer">
+            <form id="messageForm">
+                <input type="text" id="messageInput" placeholder="Type a message..." />
+                <button class="uk-button uk-button-primary" type="submit">Send</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/uikit@3.6.16/dist/js/uikit.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@6.0.2/dist/browser/signalr.min.js"></script>
+<script>
+    const contactList = document.getElementById('contactList');
+    const chatHeader = document.getElementById('chatHeader');
+    const chatMessages = document.getElementById('chatMessages');
+    const messageForm = document.getElementById('messageForm');
+    const messageInput = document.getElementById('messageInput');
+    let selectedUserId = null;
+
+    // SignalR connection
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/chatsHub")
+        .build();
+
+    // Функція для завантаження контактів з контролера
+    function loadContacts() {
+        fetch(`/api/{token}/chats/`)
+            .then(response => response.json())
+            .then(contacts => {
+                contacts.forEach(contact => {
+                    addContactToList(contact);
+                });
+            });
+    }
+
+    // Додає контакт в список
+    function addContactToList(contact) {
+        const contactElement = document.createElement('li');
+        contactElement.classList.add('contact-item');
+        contactElement.innerHTML = `
+            <img src="avatar.jpg" alt="Avatar" width="40" height="40">
+            <div class="contact-info">
+                <span class="contact-name">${contact.name}</span>
+            </div>`;
+        contactElement.dataset.id = contact.id;
+        contactList.appendChild(contactElement);
+
+        // Подія на клік для завантаження повідомлень
+        contactElement.addEventListener('click', () => {
+            selectedUserId = contact.id;
+            chatHeader.textContent = contact.name;
+            loadMessages(contact.id);
+        });
+    }
+
+    // Функція для завантаження повідомлень з контролера
+    function loadMessages(userId) {
+        fetch(`/api/{token}/messages/${userId}`)
+            .then(response => response.json())
+            .then(messages => {
+                chatMessages.innerHTML = ''; // Очищаємо історію
+                messages.forEach(message => {
+                    addMessageToChat(message);
+                });
+            });
+    }
+
+    // Додає повідомлення в чат
+    function addMessageToChat(message) {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message-item', message.is_operator_message ? 'my-message' : 'other-message');
+        messageElement.innerHTML = `
+            <div class="message-content">
+                <span class="message-text">${message.value}</span>
+                <span class="message-time">${new Date(message.added_time).toLocaleTimeString()}</span>
+            </div>`;
+        messageElement.dataset.id = message.id;
+        chatMessages.appendChild(messageElement);
+        chatMessages.scrollTop = chatMessages.scrollHeight; // Автоскрол до останнього повідомлення
+    }
+
+    // Подія на отримання нового повідомлення через SignalR
+    connection.on("ReceiveMessage", (message) => {
+        if (message.user_id === selectedUserId) {
+            addMessageToChat(message);
+        }
+    });
+
+    // Подія на додавання нового користувача в список контактів
+    connection.on("NewUser", (user) => {
+        addContactToList(user); // Додаємо нового контакта
+    });
+
+    // Відправка повідомлення
+    messageForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const messageText = messageInput.value;
+        if (messageText && selectedUserId) {
+            const message = {
+                user_id: selectedUserId,
+                is_operator_message: true,
+                value: messageText,
+                added_time: new Date().toISOString()
+            };
+            connection.invoke("SendMessage", message).catch(err => console.error(err.toString()));
+            messageInput.value = '';
+        }
+    });
+
+    // Старт SignalR з'єднання
+    connection.start()
+        .then(() => {
+            loadContacts(); // Завантажуємо контакти при старті
+        })
+        .catch(err => console.error(err.toString()));
+</script>
+
+</body>
+</html>
