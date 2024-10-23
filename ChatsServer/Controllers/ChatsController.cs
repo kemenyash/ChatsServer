@@ -8,9 +8,9 @@ namespace ChatsServer.Controllers
     [ApiController]
     public class ChatsController : ControllerBase
     {
-        private readonly DataPresenter dataPresenter;
+        private readonly DataScope dataPresenter;
 
-        public ChatsController(DataPresenter dataPresenter) 
+        public ChatsController(DataScope dataPresenter) 
         {
             this.dataPresenter = dataPresenter;
         }

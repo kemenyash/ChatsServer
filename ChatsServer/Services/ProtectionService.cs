@@ -15,11 +15,12 @@ namespace ChatsServer.Services
     public class ProtectionService
     {
         private readonly DataContext dataContext;
-        private readonly ConcurrentDictionary<int, string> tokens;
+        private static ConcurrentDictionary<int, string> tokens;
 
         public ProtectionService(DataContext dataContext)
         {
             this.dataContext = dataContext;
+            if (tokens is null) tokens = new ConcurrentDictionary<int, string>();
         }
 
         public async Task<bool> CheckToken(int id, string token) => tokens.TryGetValue(id, out var tokenData) && tokenData == token;

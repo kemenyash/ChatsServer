@@ -2,11 +2,12 @@ using ChatsServer.Hubs;
 using ChatsServer.Services;
 using DataStore;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.InteropServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -25,7 +26,8 @@ builder.Services.AddDbContext<DataContext>(options =>
            .LogTo(Console.WriteLine, LogLevel.Warning),
     ServiceLifetime.Scoped);
 
-builder.Services.AddScoped<DataPresenter>();
+builder.Services.AddScoped<DataScope>();
+builder.Services.AddSingleton<TelegramBotService>();
 
 var app = builder.Build();
 
@@ -33,7 +35,10 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
+    var botService = scope.ServiceProvider.GetService<TelegramBotService>();
+
     dbContext.Database.Migrate();
+    botService.Invoke();
 }
 
 if (app.Environment.IsDevelopment())
