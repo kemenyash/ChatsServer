@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Telegram.Bot;
 using Telegram.Bot.Types;
+using Telegram.Bot.Types.Enums;
 
 namespace ChatsServer.Services
 {
@@ -43,9 +44,9 @@ namespace ChatsServer.Services
             Console.WriteLine($"Bot {(await bot.GetMeAsync()).Username} was started");
         }
 
-        public async Task HandleUpdate(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        private async Task HandleUpdate(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
         {
-            if(update.Message != null)
+            if(update.Message != null && update.Message.Type == MessageType.Text)
             {
                 await AddNewMessage(update);
             }
@@ -113,6 +114,24 @@ namespace ChatsServer.Services
         {
             Console.WriteLine("Error occured: " + exception.Message);
             return Task.CompletedTask;
+        }
+
+        public async Task SendMessage(Models.Message message)
+        {
+            using (var scope = serviceProvider.CreateScope())
+            {
+                var dataPresenter = scope.ServiceProvider.GetRequiredService<DataScope>();
+                var user = await dataPresenter.GetUser(message.UserId);
+                try
+                {
+                    await bot.SendTextMessageAsync(chatId: user.ChatId, text: message.Value);
+                }
+                catch (Exception ex) 
+                {
+                    Console.WriteLine($"Error while sending message: {ex.Message}");
+                }
+
+            }
         }
 
         public void Invoke() 

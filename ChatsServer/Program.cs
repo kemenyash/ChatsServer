@@ -12,7 +12,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Add SignalR services
-builder.Services.AddSignalR();
+builder.Services.AddSignalR().AddNewtonsoftJsonProtocol();
 
 // Add SQLite DbContext before building the app
 var sqlitePath = builder.Configuration.GetSection("SQLitePath").Value;

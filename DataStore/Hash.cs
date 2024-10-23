@@ -23,6 +23,6 @@ namespace DataStore
         [Column("operator_id")]
         public int OperatorId { get; set; }
 
-        public User Operator { get; set; }
+        public Operator Operator { get; set; }
     }
 }

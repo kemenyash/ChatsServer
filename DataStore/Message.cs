@@ -21,6 +21,8 @@ namespace DataStore
         public string Value { get; set; }
         [Column("added_time")]
         public DateTime AddedTime { get; set; }
+        [Column("is_operator_message")]
+        public bool IsOperatorMessage { get; set; }
 
         public User User { get; set; }
     }

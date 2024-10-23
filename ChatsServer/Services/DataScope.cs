@@ -17,6 +17,23 @@ namespace ChatsServer.Services
             this.hubContext = hubContext;
         }
 
+        public async Task<User> GetUser(int userId)
+        {
+            var user = await dataContext.Users.FirstOrDefaultAsync(x => x.Id == userId);
+            if (user != null)
+            {
+                return new User
+                {
+                    ChatId = user.ChatId,
+                    Id = user.Id,
+                    ImgUrl = user.Avatar,
+                    Name = user.UserName
+                };
+            }
+
+            return null;
+        }
+
         public async Task<User> GetUser(long chatId)
         {
             var user = await dataContext.Users.FirstOrDefaultAsync(x => x.ChatId == chatId);
@@ -41,7 +58,7 @@ namespace ChatsServer.Services
                                        {
                                            AddedTime = m.AddedTime,
                                            Id = m.Id,
-                                           IsOperatorMessage = m.User.IsOperator,
+                                           IsOperatorMessage = m.IsOperatorMessage,
                                            UserId = userId,
                                            Value = m.Value
                                        }).ToListAsync() ?? Enumerable.Empty<Message>();
@@ -49,14 +66,13 @@ namespace ChatsServer.Services
 
         public async Task<IEnumerable<User>> GetChats() 
         {
-            return await dataContext.Users.Where(x => !x.IsOperator)
-                                    .Select(x => new User
-                                    {
-                                        ChatId = x.ChatId,
-                                        Id = x.Id,
-                                        ImgUrl = x.Avatar,
-                                        Name = x.UserName
-                                    }).ToListAsync()  ?? Enumerable.Empty<User>();
+            return await dataContext.Users.Select(x => new User
+                                                {
+                                                    ChatId = x.ChatId,
+                                                    Id = x.Id,
+                                                    ImgUrl = x.Avatar,
+                                                    Name = x.UserName
+                                                }).ToListAsync()  ?? Enumerable.Empty<User>();
         }
 
 
@@ -66,7 +82,6 @@ namespace ChatsServer.Services
             {
                 Avatar = user.ImgUrl,
                 ChatId = user.ChatId,
-                IsOperator = false,
                 UserName = user.Name
             };
 
@@ -83,7 +98,8 @@ namespace ChatsServer.Services
             {
                 AddedTime = message.AddedTime,
                 UserId = message.UserId,
-                Value = message.Value
+                Value = message.Value,
+                IsOperatorMessage = message.IsOperatorMessage
             };
 
             await dataContext.Messages.AddAsync(messageData);
@@ -93,10 +109,5 @@ namespace ChatsServer.Services
             return messageData.Id;
         }
 
-        public async Task SendMessageFromOperator(Message message)
-        {
-            var messageId = await AddMessage(message);
-
-        }
     }
 }

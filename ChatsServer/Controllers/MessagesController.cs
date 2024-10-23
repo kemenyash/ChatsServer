@@ -10,10 +10,12 @@ namespace ChatsServer.Controllers
     public class MessagesController : ControllerBase
     {
         private readonly DataScope dataPresenter;
+        private readonly TelegramBotService telegramBotService;
 
-        public MessagesController(DataScope dataPresenter)
+        public MessagesController(DataScope dataPresenter, TelegramBotService telegramBotService)
         {
             this.dataPresenter = dataPresenter;
+            this.telegramBotService = telegramBotService;
         }
 
         [HttpGet("{userId}")]
@@ -23,10 +25,11 @@ namespace ChatsServer.Controllers
             return Ok(chats);
         }
 
-        [HttpPost("{chatId}")]
+        [HttpPost("{userId}")]
         public async Task<IActionResult> SendMessage(Message message)
         {
             await dataPresenter.AddMessage(message);
+            await telegramBotService.SendMessage(message);
             return Ok();
         }
     }
