@@ -3,6 +3,7 @@ using ChatsServer.Hubs;
 using ChatsServer.Models;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using System.Web;
 
 namespace ChatsServer.Services
 {
@@ -94,6 +95,7 @@ namespace ChatsServer.Services
 
         public async Task<int> AddMessage(Message message)
         {
+            message.Value = HttpUtility.HtmlEncode(message.Value);
             var messageData = new DataStore.Message
             {
                 AddedTime = message.AddedTime,

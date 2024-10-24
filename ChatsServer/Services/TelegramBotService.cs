@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
+using System.Web;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -59,32 +61,40 @@ namespace ChatsServer.Services
             {
                 var dataPresenter = scope.ServiceProvider.GetRequiredService<DataScope>();
                 var user = await dataPresenter.GetUser(chatId);
+
+                int userId = 0;
                 if(user is null)
                 {
-                    await RegisterUser(new Models.User
+                    userId = await RegisterUser(new Models.User
                     {
                         ChatId = chatId,
                         ImgUrl = await GetTelegramPhotoUrl(chatId),
                         Name = update.Message.Chat.Username
                     });
-                    await AddNewMessage(update);
                 }
+                else
+                {
+                    userId = user.Id;
+                }
+
                 await dataPresenter.AddMessage(new Models.Message
                 {
                     AddedTime = DateTime.UtcNow,
                     IsOperatorMessage = false,
-                    UserId = user.Id,
+                    UserId = userId,
                     Value = update.Message.Text
                 });
             }
         }
 
-        private async Task RegisterUser(Models.User user)
+
+        private async Task<int> RegisterUser(Models.User user)
         {
             using (var scope = serviceProvider.CreateScope())
             {
                 var dataPresenter = scope.ServiceProvider.GetRequiredService<DataScope>();
-                await dataPresenter.AddUser(user);
+                var userId = await dataPresenter.AddUser(user);
+                return userId;
             }
 
         }
