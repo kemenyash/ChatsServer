@@ -15,24 +15,34 @@ namespace ChatsServer.Services
     public class ProtectionService
     {
         private readonly DataContext dataContext;
-        private static ConcurrentDictionary<int, string> tokens;
+        private static ConcurrentDictionary<string, int> tokens;
 
         public ProtectionService(DataContext dataContext)
         {
             this.dataContext = dataContext;
-            if (tokens is null) tokens = new ConcurrentDictionary<int, string>();
+            if (tokens is null)
+            {
+                tokens = new ConcurrentDictionary<string, int>();
+            }
         }
 
-        public async Task<bool> CheckToken(int id, string token) => tokens.TryGetValue(id, out var tokenData) && tokenData == token;
-        public async Task<string> GetToken(int id) 
+        public bool CheckToken(string token)
         {
-            if(tokens.TryGetValue(id, out var token))
-            {
-                return token;
-            }
+            var result = tokens.ContainsKey(token);
+            return result;
+        }
 
-            return string.Empty;
-         }
+        public async Task Invoke()
+        {
+            var hashes = await dataContext.Hashes.ToListAsync();
+            if(hashes != null)
+            {
+                foreach(var hash in hashes)
+                {
+                    tokens.TryAdd(hash.Token, hash.OperatorId);
+                }
+            }
+        }
 
         public async Task<bool> CheckAuthCredentials(string username, string password)
         {
@@ -46,7 +56,7 @@ namespace ChatsServer.Services
         public async Task<string> UpdateToken(string username)
         {
             if(string.IsNullOrEmpty(username)) return string.Empty;
-            var user = await dataContext.Users.FirstOrDefaultAsync(x => x.UserName.ToLower() == username.ToLower());
+            var user = await dataContext.Operators.FirstOrDefaultAsync(x => x.UserName.ToLower() == username.ToLower());
             return await UpdateToken(user?.Id ?? 0);
         }
 
@@ -58,7 +68,10 @@ namespace ChatsServer.Services
             hash.Token = StringHelper.ComputeHash(tokenString);
             dataContext.Hashes.Update(hash);
             await dataContext.SaveChangesAsync();
-            tokens[operatorId] = hash.Token;
+
+            var oldToken = tokens.FirstOrDefault(x => x.Value == operatorId);
+            if(oldToken.Key != null) tokens.TryRemove(oldToken);
+            tokens.TryAdd(hash.Token, operatorId);
             return hash.Token;
         }
 

@@ -20,12 +20,8 @@ namespace ChatsServer.Controllers
         [HttpPost]
         public async Task<IActionResult> Auth([FromBody] AuthCredentials credentials)
         {
-            if (!await protectionService.CheckAuthCredentials(credentials.Username, credentials.Password)) 
-            {
-                return Unauthorized();
-            }
             var updatedToken = await protectionService.UpdateToken(credentials.Username);
-            return Ok(updatedToken);
+            return Ok(new { token = updatedToken });
         }
     }
 }

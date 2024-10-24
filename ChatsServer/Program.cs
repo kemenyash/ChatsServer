@@ -28,6 +28,7 @@ builder.Services.AddDbContext<DataContext>(options =>
 
 builder.Services.AddScoped<DataScope>();
 builder.Services.AddSingleton<TelegramBotService>();
+builder.Services.AddScoped<ProtectionService>();
 
 var app = builder.Build();
 
@@ -36,9 +37,11 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
     var botService = scope.ServiceProvider.GetService<TelegramBotService>();
+    var protectionService = scope.ServiceProvider.GetService<ProtectionService>();
 
     dbContext.Database.Migrate();
     botService.Invoke();
+    protectionService.Invoke().ConfigureAwait(false);
 }
 
 if (app.Environment.IsDevelopment())

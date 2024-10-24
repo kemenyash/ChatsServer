@@ -9,15 +9,19 @@ namespace ChatsServer.Controllers
     public class ChatsController : ControllerBase
     {
         private readonly DataScope dataPresenter;
+        private readonly ProtectionService protectionService;
 
-        public ChatsController(DataScope dataPresenter) 
+        public ChatsController(DataScope dataPresenter, ProtectionService protectionService)
         {
             this.dataPresenter = dataPresenter;
+            this.protectionService = protectionService;
         }
 
         [HttpGet]
         public async Task<IActionResult> Get(string token)
         {
+            if(!protectionService.CheckToken(token)) return Unauthorized();
+
             var chats = await dataPresenter.GetChats();
             return Ok(chats);
         }
