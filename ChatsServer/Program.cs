@@ -7,15 +7,15 @@ using System.Runtime.InteropServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+
 builder.Services.AddControllers().AddNewtonsoftJson(options => options.SerializerSettings.Converters.Add(new EscapingStringConverter()));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Add SignalR services
+
 builder.Services.AddSignalR().AddNewtonsoftJsonProtocol();
 
-// Add SQLite DbContext before building the app
+
 var sqlitePath = builder.Configuration.GetSection("SQLitePath").Value;
 var directory = Path.GetDirectoryName(sqlitePath);
 Environment.SetEnvironmentVariable("TelegramToken", builder.Configuration.GetSection("TelegramToken").Value);
@@ -33,7 +33,7 @@ builder.Services.AddScoped<ProtectionService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
@@ -53,12 +53,13 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Add routing middleware before endpoints
+
 app.UseRouting();
+app.UseStaticFiles();
 
 app.UseAuthorization();
 
-// Map the SignalR hubs and other endpoints
+
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapHub<ChatsHub>("/chatsHub");
@@ -66,6 +67,5 @@ app.UseEndpoints(endpoints =>
 });
 
 app.MapControllers();
-app.MapFallbackToFile("index.html");
 
 app.Run();

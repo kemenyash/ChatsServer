@@ -2,400 +2,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat</title>
+    <title>Чати</title>
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.6.16/dist/css/uikit.min.css" />
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-        }
-
-        .message-item {
-            margin-bottom: 10px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .my-message .message-content {
-            align-self: flex-end;
-            background-color: #d1e7dd;
-            padding: 10px;
-            border-radius: 10px;
-            max-width: 70%;
-        }
-
-        .other-message .message-content {
-            align-self: flex-start;
-            background-color: #f0f0f0;
-            padding: 10px;
-            border-radius: 10px;
-            max-width: 70%;
-        }
-
-        .message-text {
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        img {
-            border-radius: 20px;
-        }
-
-        .message-time {
-            font-size: 0.8em;
-            color: #666;
-            text-align: right;
-        }
-
-        .contact-item {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            cursor: pointer;
-            margin-bottom: 5px;
-        }
-
-        .contact-info {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            margin-left: 10px;
-        }
-
-        .contact-name {
-            font-weight: 400;
-        }
-
-        .chat-container {
-            display: flex;
-            height: 100%;
-        }
-
-        .contacts {
-            width: 30%;
-            background-color: #f0f0f0;
-            border-right: 1px solid #ddd;
-            overflow-y: auto;
-        }
-
-        .chat-content {
-            width: 70%;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-
-        .chat-header {
-            padding: 5px;
-            background-color: #f8f8f8;
-            border-bottom: 1px solid #ddd;
-            text-align: center; /* Центрування тексту */
-            flex-shrink: 0;
-        }
-
-        .contacts .chat-header {
-            text-align: center; /* Центрування тексту в контактах */
-        }
-
-        .chat-messages {
-            flex-grow: 1;
-            padding: 20px;
-            overflow-y: auto;
-            background-color: #ffffff;
-        }
-
-        .chat-footer {
-            padding: 20px;
-            background-color: #f8f8f8;
-            border-top: 1px solid #ddd;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-        }
-
-            .chat-footer form {
-                display: flex;
-                width: 100%;
-            }
-
-            .chat-footer input[type="text"] {
-                flex-grow: 1;
-                padding: 10px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-            }
-
-            .chat-footer button {
-                margin-left: 10px;
-            }
-
-        .no-contact-message {
-            text-align: center;
-            margin: 20px 0;
-            font-size: 1.2em;
-            color: #888;
-        }
-
-        @media (max-width: 768px) {
-            .contacts {
-                width: 100%;
-                height: 100%;
-            }
-
-            .chat-content {
-                width: 100%;
-                height: 100%;
-            }
-        }
-
-        .uk-modal-body {
-            text-align: center;
-        }
-
-
-        .contact-item.selected {
-            background-color: #d6d7d6;
-            border-radius: 10px;
-        }
-
-
-    </style>
+    <link rel="stylesheet" href="/css/main.css" />
+    <script src="https://cdn.jsdelivr.net/npm/uikit@3.6.16/dist/js/uikit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@6.0.2/dist/browser/signalr.min.js"></script>
 
 </head>
 <body>
 
-    <div id="authWindow" class="uk-modal-full" uk-modal>
-        <div class="uk-modal-dialog uk-flex uk-flex-center uk-flex-middle" style="height: 100%;">
-            <div class="uk-modal-body">
-                <h2 class="uk-modal-title">Авторизація</h2>
-                <form id="authForm">
-                    <div class="uk-margin">
-                        <input class="uk-input" type="text" id="username" placeholder="Логін" required>
+    <div id="app">
+        <div id="authWindow" class="uk-modal-full" uk-modal>
+            <div class="uk-modal-dialog uk-flex uk-flex-center uk-flex-middle" style="height: 100%;">
+                <div class="uk-modal-body">
+                    <h2 class="uk-modal-title">Авторизація</h2>
+                    <form @submit.prevent="authenticate">
+                        <div class="uk-margin">
+                            <input class="uk-input" v-model="username" type="text" placeholder="Логін" required>
+                        </div>
+                        <div class="uk-margin">
+                            <input class="uk-input" v-model="password" type="password" placeholder="Пароль" required>
+                        </div>
+                        <button class="uk-button uk-button-primary" type="submit">Вхід</button>
+                    </form>
+                    <div v-if="authMessage" class="uk-margin-top uk-text-danger">{{ authMessage }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div class="contacts">
+                <div class="chat-contact-header">
+                    <h4>Контакти</h4>
+                </div>
+                <ul>
+                    <li v-for="contact in contacts" :key="contact.id" class="contact-item"
+                        @click="selectContact(contact)"
+                        :class="{ selected: selectedContact && selectedContact.id === contact.id }">
+                        <img :src="contact.img_url" :alt="contact.name" width="40" height="40">
+                        <div class="contact-info">
+                            <span class="contact-name">{{ contact.name }}</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="chat-content">
+                <div class="chat-header">
+                    <h4>{{ selectedContact ? selectedContact.name : 'Оберіть контакт' }}</h4>
+                </div>
+                <div class="chat-messages" ref="chatMessages">
+                    <div v-for="message in messages" :key="message.id" :class="['message-item', message.is_operator_message ? 'my-message' : 'other-message']">
+                        <div class="message-content">
+                            <span class="message-text">{{ message.value }}</span>
+                            <span class="message-time">{{ formatDate(message.added_time) }}</span>
+                        </div>
                     </div>
-                    <div class="uk-margin">
-                        <input class="uk-input" type="password" id="password" placeholder="Пароль" required>
-                    </div>
-                    <button class="uk-button uk-button-primary" type="submit">Вхід</button>
-                </form>
-                <div id="authMessage" class="uk-margin-top uk-text-danger"></div>
+                </div>
+                <div class="chat-footer">
+                    <div v-if="!selectedContact" class="no-contact-message">Оберіть контакт для перегляду історії повідомлень</div>
+                    <form v-if="selectedContact" @submit.prevent="sendMessage">
+                        <input v-model="messageInput" type="text" placeholder="Напишіть ваше повідомлення..." />
+                        <button class="uk-button uk-button-secondary" type="submit">➤</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="chat-container">
-        <div class="contacts">
-            <div class="chat-header">
-                <h4>Контакти</h4>
-            </div>
-            <ul id="contactList"></ul>
-        </div>
+    <script src="/js/app.js"></script>
 
-        <div class="chat-content">
-            <div class="chat-header">
-                <h4 id="chatHeader">Оберіть контакт</h4>
-            </div>
-            <div class="chat-messages" id="chatMessages"></div>
-            <div class="chat-footer">
-                <div id="noContactMessage" class="no-contact-message" style="display: none;">Оберіть контакт для перегляду історії повідомлень</div>
-                <form id="messageForm" style="display: none;">
-                    <input type="text" id="messageInput" placeholder="Напишіть ваше повідомлення..." />
-                    <button class="uk-button uk-button-secondary" type="submit">➤</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/uikit@3.6.16/dist/js/uikit.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@6.0.2/dist/browser/signalr.min.js"></script>
-    <script>
-        const contactList = document.getElementById('contactList');
-        const chatHeader = document.getElementById('chatHeader');
-        const chatMessages = document.getElementById('chatMessages');
-        const messageForm = document.getElementById('messageForm');
-        const messageInput = document.getElementById('messageInput');
-        const noContactMessage = document.getElementById('noContactMessage');
-        const authForm = document.getElementById('authForm');
-        const authMessage = document.getElementById('authMessage');
-        let selectedUserId = null;
-
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/chatsHub")
-            .build();
-
-        function loadContacts() {
-            const token = getCookie('token');
-            if (!token) {
-                UIkit.modal('#authWindow').show();
-                return;
-            }
-
-            fetch(`/api/${token}/chats/`)
-                .then(checkUnauthorized)
-                .then(response => response.json())
-                .then(contacts => {
-                    contactList.innerHTML = '';
-                    contacts.forEach(contact => {
-                        addContactToList(contact);
-                    });
-                })
-                .catch(error => console.error('Error loading contacts:', error));
-        }
-
-        function addContactToList(contact) {
-            const contactElement = document.createElement('li');
-            contactElement.classList.add('contact-item');
-            contactElement.innerHTML = `
-        <img src="${contact.img_url}" alt="${contact.name}" width="40" height="40">
-        <div class="contact-info">
-            <span class="contact-name">${contact.name}</span>
-        </div>`;
-            contactElement.dataset.id = contact.id;
-            contactList.appendChild(contactElement);
-
-            contactElement.addEventListener('click', () => {
-                document.querySelectorAll('.contact-item').forEach(item => {
-                    item.classList.remove('selected');
-                });
-
-                selectedUserId = contact.id;
-                chatHeader.textContent = contact.name;
-                contactElement.classList.add('selected');
-                loadMessages(contact.id);
-
-                toggleMessageInput(true);
-            });
-        }
-
-
-
-        function loadMessages(userId) {
-            const token = getCookie('token');
-            fetch(`/api/${token}/messages/${userId}`)
-                .then(checkUnauthorized)
-                .then(response => response.json())
-                .then(messages => {
-                    chatMessages.innerHTML = '';
-                    messages.forEach(message => {
-                        addMessageToChat(message);
-                    });
-                })
-                .catch(error => console.error('Error loading messages:', error));
-        }
-
-        function addMessageToChat(message) {
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message-item', message.is_operator_message ? 'my-message' : 'other-message');
-            messageElement.innerHTML = `
-                    <div class="message-content">
-                        <span class="message-text">${message.value}</span>
-                        <span class="message-time">${new Date(message.added_time).toLocaleTimeString()}</span>
-                    </div>`;
-            messageElement.dataset.id = message.id;
-            chatMessages.appendChild(messageElement);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        connection.on("ReceiveMessage", (message) => {
-            if (message.user_id === selectedUserId) {
-                addMessageToChat(message);
-            }
-        });
-
-        connection.on("NewUser", (user) => {
-            addContactToList(user);
-        });
-
-        messageForm.addEventListener('submit', (event) => {
-            event.preventDefault();
-            sendMessage();
-        });
-
-        function sendMessage() {
-            const token = getCookie('token');
-            const message = messageInput.value.trim();
-            if (!message || !selectedUserId) return;
-
-            const data = {
-                user_id: selectedUserId,
-                is_operator_message: true,
-                value: message,
-                added_time: new Date().toISOString()
-            };
-
-            fetch(`/api/${token}/messages/${selectedUserId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            })
-                .then(checkUnauthorized)
-                .then(response => {
-                    if (response.ok) {
-                        messageInput.value = '';
-                    }
-                })
-                .catch(error => console.error('Error sending message:', error));
-        }
-
-        function toggleMessageInput(show) {
-            if (show) {
-                noContactMessage.style.display = 'none';
-                messageForm.style.display = 'flex';
-            } else {
-                noContactMessage.style.display = 'block';
-                messageForm.style.display = 'none';
-            }
-        }
-
-        authForm.addEventListener('submit', (event) => {
-            event.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            authenticate(username, password);
-        });
-
-        function authenticate(username, password) {
-            fetch('/api/authenticate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            })
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    }
-                    throw new Error('Authentication failed');
-                })
-                .then(data => {
-                    setCookie('token', data.token, 7);
-                    UIkit.modal('#authWindow').hide();
-                    loadContacts();
-                })
-                .catch(error => {
-                    authMessage.textContent = error.message;
-                });
-        }
-
-        function checkUnauthorized(response) {
-            if (response.status === 401) {
-                UIkit.modal('#authWindow').show();
-            }
-            return response;
-        }
-
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-        }
-
-        function setCookie(name, value, days) {
-            const expires = new Date(Date.now() + days * 864e5).toUTCString();
-            document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
-        }
-
-        loadContacts();
-        connection.start().catch(err => console.error(err.toString()));
-    </script>
 </body>
 </html>
